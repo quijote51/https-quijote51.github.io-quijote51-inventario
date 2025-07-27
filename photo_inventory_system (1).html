@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Fotográfico con Voz</title>
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Inventario">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSW52ZW50YXJpbyBGb3RvZ3LDoWZpY28iLCJzaG9ydF9uYW1lIjoiSW52ZW50YXJpbyIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjNjY3ZWVhIiwidGhlbWVfY29sb3IiOiIjNjY3ZWVhIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU1USTRJaUJvWldsbmFIUTlJakV5T0NJZ2RtbGxkMEp2ZUQwaU1DQXdJREV5T0NBeU9EZ2lJR1pwYkd3OUlpTTJOamc0WldFaVBqeDBaWGgwSUhnOUlqUXdJaUI1UFNJeE5EZ2lJR1pwYkd3OUlpTm1abVlpSUdadmJuUXRjMmw2WlQwaU5EQWlQako4Ums4OEwzUmxlSFErUEM5emRtYysiLCJzaXplcyI6IjEyOHgxMjgiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            color: #4a5568;
+            font-size: 26px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            padding: 5px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Estilos para carga de fotos */
+        .photo-upload {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(247, 250, 252, 0.8);
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #a0aec0;
+        }
+
+        .photo-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .photo-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .photo-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Estilos para controles de voz */
+        .voice-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .voice-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .record-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .record-btn.recording {
+            background: linear-gradient(45deg, #ff4757, #c44569);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(72, 187, 120, 0.1);
+            border: 1px solid rgba(72, 187, 120, 0.3);
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+        .error {
+            background: rgba(245, 101, 101, 0.1);
+            border: 1px solid rgba(245, 101, 101, 0.3);
+            color: #c53030;
+        }
+
+        .loading {
+            background: rgba(54, 162, 235, 0.1);
+            border: 1px solid rgba(54, 162, 235, 0.3);
+            color: #2b6cb0;
+        }
+
+        /* Inventario */
+        .inventory {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #f7fafc, #edf2f7);
+            border-radius: 10px;
+            border-left: 4px solid #48bb78;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 15px;
+        }
+
+        .item-quantity {
+            background: #48bb78;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-export {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .btn-clear {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .commands {
+            background: rgba(54, 162, 235, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(54, 162, 235, 0.2);
+        }
+
+        .commands h4 {
+            color: #2b6cb0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .command-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .command-list li {
+            background: rgba(255, 255, 255, 0.8);
+            margin-bottom: 6px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 3px solid #3182ce;
+        }
+
+        .empty-inventory {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 30px;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #718096;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 Inventario Fotográfico</h1>
+            <p>Carga fotos → Genera Excel → Actualiza por voz</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('photo')">📷 Fotos</div>
+            <div class="tab" onclick="switchTab('voice')">🎤 Voz</div>
+            <div class="tab" onclick="switchTab('inventory')">📋 Inventario</div>
+        </div>
+
+        <!-- Tab de Fotos -->
+        <div id="photoTab" class="tab-content active">
+            <div class="photo-upload">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <h3>Sube fotos de tu inventario</h3>
+                    <p>Arrastra imágenes aquí o haz clic para seleccionar</p>
+                    <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
+                </div>
+                <div id="photoPreview" class="photo-preview"></div>
+                <button id="analyzeBtn" class="analyze-btn" disabled>🔍 Analizar Inventario con IA</button>
+            </div>
+        </div>
+
+        <!-- Tab de Voz -->
+        <div id="voiceTab" class="tab-content">
+            <div class="voice-controls">
+                <button class="voice-btn record-btn" id="recordBtn">🎤</button>
+            </div>
+
+            <div class="status" id="status">
+                Presiona el micrófono para actualizar inventario
+            </div>
+
+            <!-- Panel de debug -->
+            <div id="debugPanel" style="background: rgba(0,0,0,0.05); padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 12px; display: none;">
+                <h4>🔍 Debug Info:</h4>
+                <div id="debugInfo">Presiona el micrófono para ver información de debug</div>
+            </div>
+
+            <!-- Botón de prueba -->
+            <div style="text-align: center; margin: 15px 0;">
+                <button onclick="testVoice()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    🧪 Probar Sistema
+                </button>
+                <button onclick="toggleDebug()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">
+                    🔍 Toggle Debug
+                </button>
+            </div>
+
+            <div class="commands">
+                <h4>🗣️ Comandos de Voz</h4>
+                <ul class="command-list">
+                    <li><strong>"Agregar [producto] [cantidad]"</strong><br>Ej: "Agregar manzanas 10"</li>
+                    <li><strong>"Quitar [producto] [cantidad]"</strong><br>Ej: "Quitar manzanas 3"</li>
+                    <li><strong>"Actualizar [producto] [cantidad]"</strong><br>Ej: "Actualizar pan 5"</li>
+                    <li><strong>"Buscar [producto]"</strong><br>Ej: "Buscar leche"</li>
+                    <li><strong>"Mostrar inventario"</strong><br>Ver todos los productos</li>
+                    <li><strong>"Generar reporte"</strong><br>Exportar a Excel</li>
+                </ul>
+                <div style="margin-top: 15px; padding: 10px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <strong>💡 Consejos:</strong><br>
+                    • Habla claro y pausado<br>
+                    • Permite acceso al micrófono<br>
+                    • Usa conexión estable<br>
+                    • En móvil: usa Chrome o Safari
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab de Inventario -->
+        <div id="inventoryTab" class="tab-content">
+            <div class="inventory">
+                <div class="inventory-header">
+                    <h3>📦 Inventario</h3>
+                    <span id="totalItems">(0 productos)</span>
+                </div>
+                <div id="inventoryList">
+                    <div class="empty-inventory">
+                        Carga fotos o usa comandos de voz para crear tu inventario
+                    </div>
+                </div>
+                <div class="last-updated" id="lastUpdated"></div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-export" onclick="exportToExcel()">📊 Exportar Excel</button>
+                <button class="btn btn-clear" onclick="clearInventory()">🗑️ Limpiar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let inventory = JSON.parse(localStorage.getItem('photoInventory')) || {};
+        let recognition;
+        let isListening = false;
+        let photos = [];
+
+        // Elementos DOM
+        const photoInput = document.getElementById('photoInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const photoPreview = document.getElementById('photoPreview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const recordBtn = document.getElementById('recordBtn');
+        const status = document.getElementById('status');
+        const inventoryList = document.getElementById('inventoryList');
+        const totalItems = document.getElementById('totalItems');
+        const lastUpdated = document.getElementById('lastUpdated');
+
+        // Funciones de tabs
+        function switchTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Mostrar tab seleccionado
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Funciones de carga de fotos
+        uploadArea.addEventListener('click', () => photoInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            handlePhotoUpload(files);
+        });
+
+        photoInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handlePhotoUpload(files);
+        });
+
+        function handlePhotoUpload(files) {
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photos.push({
+                        file: file,
+                        dataUrl: e.target.result,
+                        name: file.name
+                    });
+                    updatePhotoPreview();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updatePhotoPreview() {
+            photoPreview.innerHTML = '';
+            photos.forEach((photo, index) => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item';
+                photoItem.innerHTML = `
+                    <img src="${photo.dataUrl}" alt="${photo.name}">
+                    <button class="photo-remove" onclick="removePhoto(${index})">×</button>
+                `;
+                photoPreview.appendChild(photoItem);
+            });
+            analyzeBtn.disabled = photos.length === 0;
+        }
+
+        function removePhoto(index) {
+            photos.splice(index, 1);
+            updatePhotoPreview();
+        }
+
+        // Función para analizar fotos con IA
+        async function analyzePhotos() {
+            if (photos.length === 0) return;
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '🔄 Analizando...';
+            updateStatus('Analizando fotos con IA...', 'loading');
+
+            try {
+                for (const photo of photos) {
+                    await analyzePhotoWithClaude(photo);
+                }
+                
+                saveInventory();
+                updateInventoryDisplay();
+                updateStatus(`✅ Análisis completado. ${Object.keys(inventory).length} productos detectados`);
+                
+                // Cambiar al tab de inventario
+                switchTab('inventory');
+                document.querySelector('.tab:nth-child(3)').classList.add('active');
+                
+            } catch (error) {
+                console.error('Error analyzing photos:', error);
+                updateStatus('❌ Error al analizar las fotos', 'error');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 Analizar Inventario con IA';
+            }
+        }
+
+        async function analyzePhotoWithClaude(photo) {
+            const base64Data = photo.dataUrl.split(',')[1];
+            
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 1000,
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "image",
+                                    source: {
+                                        type: "base64",
+                                        media_type: "image/jpeg",
+                                        data: base64Data
+                                    }
+                                },
+                                {
+                                    type: "text",
+                                    text: `Analiza esta imagen de inventario y extrae SOLO los productos visibles con sus cantidades aproximadas. 
+
+Responde ÚNICAMENTE con un JSON válido en este formato:
+{
+  "producto1": cantidad,
+  "producto2": cantidad,
+  "producto3": cantidad
+}
+
+Reglas importantes:
+- Solo productos claramente visibles
+- Cantidades aproximadas (números enteros)
+- Nombres de productos en español, simples y claros
+- NO incluyas texto adicional, solo el JSON
+- Si no ves productos claros, responde: {}`
+                                }
+                            ]
+                        }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+            let responseText = data.content[0].text.trim();
+            
+            // Limpiar respuesta de posibles markdown
+            responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+            
+            try {
+                const detectedProducts = JSON.parse(responseText);
+                
+                // Agregar productos detectados al inventario
+                for (const [product, quantity] of Object.entries(detectedProducts)) {
+                    if (inventory[product]) {
+                        inventory[product] += quantity;
+                    } else {
+                        inventory[product] = quantity;
+                    }
+                }
+            } catch (parseError) {
+                console.error('Error parsing AI response:', parseError);
+                throw new Error('Error al procesar la respuesta de IA');
+            }
+        }
+
+        analyzeBtn.addEventListener('click', analyzePhotos);
+
+        // Funciones de debug y prueba
+        function toggleDebug() {
+            const debugPanel = document.getElementById('debugPanel');
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function logDebug(message) {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.innerHTML += `<br>[${timestamp}] ${message}`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+            console.log('DEBUG:', message);
+        }
+
+        function testVoice() {
+            logDebug('🧪 Iniciando prueba del sistema...');
+            
+            // Test 1: Verificar soporte
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            logDebug(`✅ Soporte de reconocimiento: ${SpeechRecognition ? 'SÍ' : 'NO'}`);
+            
+            // Test 2: Verificar micrófono
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(function(stream) {
+                        logDebug('✅ Micrófono: ACCESIBLE');
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        // Test 3: Probar comando manual
+                        logDebug('🧪 Probando comando: "agregar manzanas 5"');
+                        processVoiceCommand('agregar manzanas 5');
+                        
+                    })
+                    .catch(function(error) {
+                        logDebug(`❌ Micrófono: ERROR - ${error.message}`);
+                    });
+            } else {
+                logDebug('❌ API de micrófono no disponible');
+            }
+            
+            // Test 4: Verificar inventario
+            logDebug(`📦 Productos en inventario: ${Object.keys(inventory).filter(k => k !== 'lastUpdated').length}`);
+        }
+
+        // Funciones de reconocimiento de voz mejoradas
+        function initializeSpeechRecognition() {
+            logDebug('🎤 Inicializando reconocimiento de voz...');
+            
+            // Verificar soporte más exhaustivo
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                const msg = '❌ Tu navegador/dispositivo no soporta reconocimiento de voz';
+                updateStatus(msg, 'error');
+                logDebug(msg);
+                speak('Reconocimiento de voz no disponible en este dispositivo');
+                return false;
+            }
+
+            recognition = new SpeechRecognition();
+            
+            // Configuración más robusta
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'es-ES';
+            recognition.maxAlternatives = 3;
+
+            recognition.onstart = function() {
+                isListening = true;
+                recordBtn.classList.add('recording');
+                const msg = '🔴 Escuchando... Habla CLARO y FUERTE';
+                updateStatus(msg);
+                logDebug('🎤 Reconocimiento iniciado');
+            };
+
+            recognition.onresult = function(event) {
+                logDebug(`📝 Resultado recibido - Results: ${event.results.length}`);
+                
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        transcript = event.results[i][0].transcript.toLowerCase().trim();
+                        logDebug(`✅ Transcript final: "${transcript}"`);
+                        updateStatus(`Procesando: "${transcript}"`);
+                        processVoiceCommand(transcript);
+                        break;
+                    } else {
+                        // Mostrar resultado temporal
+                        const temp = event.results[i][0].transcript;
+                        updateStatus(`Escuchando: "${temp}..."`);
+                        logDebug(`⏳ Temporal: "${temp}"`);
+                    }
+                }
+            };
+
+            recognition.onerror = function(event) {
+                const errorDetails = `Error: ${event.error}`;
+                logDebug(`❌ ${errorDetails}`);
+                
+                let errorMsg = '';
+                
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMsg = '❌ No se detectó voz. Habla más fuerte';
+                        break;
+                    case 'audio-capture':
+                        errorMsg = '❌ Error de micrófono. Permite acceso al micrófono';
+                        break;
+                    case 'not-allowed':
+                        errorMsg = '❌ Permiso de micrófono denegado. Actívalo en configuración';
+                        break;
+                    case 'network':
+                        errorMsg = '❌ Error de conexión. Verifica tu internet';
+                        break;
+                    case 'language-not-supported':
+                        errorMsg = '❌ Idioma no soportado';
+                        break;
+                    default:
+                        errorMsg = `❌ Error de reconocimiento: ${event.error}`;
+                }
+                
+                updateStatus(errorMsg, 'error');
+                logDebug(errorMsg);
+                speak(errorMsg);
+                stopListening();
+            };
+
+            recognition.onend = function() {
+                logDebug('🛑 Reconocimiento terminado');
+                stopListening();
+            };
+
+            recognition.onnomatch = function() {
+                const msg = '❌ No se entendió el comando. Intenta de nuevo';
+                updateStatus(msg, 'error');
+                logDebug(msg);
+                speak('No se entendió el comando');
+                stopListening();
+            };
+
+            logDebug('✅ Reconocimiento de voz inicializado correctamente');
+            return true;
+        }
+
+        function processVoiceCommand(command) {
+            logDebug(`🎤 Comando recibido: "${command}"`);
+            updateStatus(`Procesando: "${command}"`);
+            
+            // Limpiar comando básico
+            const cleanCommand = command.toLowerCase().trim();
+            logDebug(`🔄 Comando limpio: "${cleanCommand}"`);
+            
+            let commandRecognized = false;
+
+            // MÉTODO SIMPLE: Buscar números y palabras
+            const words = cleanCommand.split(' ').filter(w => w.length > 0);
+            const numbers = [];
+            const textWords = [];
+            
+            for (const word of words) {
+                const num = parseInt(word);
+                if (!isNaN(num)) {
+                    numbers.push(num);
+                } else {
+                    textWords.push(word);
+                }
+            }
+            
+            logDebug(`📊 Palabras totales: [${words.join(', ')}]`);
+            logDebug(`🔢 Números encontrados: [${numbers.join(', ')}]`);
+            logDebug(`📝 Palabras de texto: [${textWords.join(', ')}]`);
+
+            // AGREGAR - Estrategia simple
+            if (textWords.some(w => ['agregar', 'añadir', 'anadir', 'meter', 'poner', 'agrega', 'añade', 'mete', 'pon'].includes(w))) {
+                logDebug('🔍 Detectado comando AGREGAR');
+                
+                if (numbers.length > 0) {
+                    const quantity = numbers[0];
+                    
+                    // Extraer el producto (todo menos comandos y números)
+                    const productWords = textWords.filter(w => 
+                        !['agregar', 'añadir', 'anadir', 'meter', 'poner', 'agrega', 'añade', 'mete', 'pon', 'de', 'el', 'la', 'los', 'las', 'un', 'una'].includes(w)
+                    );
+                    
+                    if (productWords.length > 0) {
+                        const product = productWords.join(' ');
+                        logDebug(`✅ Extraído: producto="${product}", cantidad=${quantity}`);
+                        
+                        addProduct(product, quantity);
+                        speak(`Agregado ${quantity} ${product} al inventario`);
+                        commandRecognized = true;
+                        
+                        // Cambiar al tab de inventario para mostrar el cambio
+                        setTimeout(() => {
+                            switchTab('inventory');
+                            document.querySelector('.tab:nth-child(3)').classList.add('active');
+                        }, 1000);
+                    }
+                } else {
+                    logDebug('❌ No se encontró cantidad numérica');
+                    speak('No escuché la cantidad. Di por ejemplo: agregar manzanas 5');
+                }
+            }
+            
+            // QUITAR - Estrategia simple
+            else if (textWords.some(w => ['quitar', 'eliminar', 'sacar', 'reducir', 'quita', 'elimina', 'saca', 'reduce'].includes(w))) {
+                logDebug('🔍 Detectado comando QUITAR');
+                
+                if (numbers.length > 0) {
+                    const quantity = numbers[0];
+                    const productWords = textWords.filter(w => 
+                        !['quitar', 'eliminar', 'sacar', 'reducir', 'quita', 'elimina', 'saca', 'reduce', 'de', 'el', 'la', 'los', 'las'].includes(w)
+                    );
+                    
+                    if (productWords.length > 0) {
+                        const product = productWords.join(' ');
+                        logDebug(`✅ Extraído: producto="${product}", cantidad=${quantity}`);
+                        
+                        removeProduct(product, quantity);
+                        speak(`Quitado ${quantity} ${product} del inventario`);
+                        commandRecognized = true;
+                    }
+                }
+            }
+            
+            // BUSCAR
+            else if (textWords.some(w => ['buscar', 'busca', 'encontrar', 'encuentra', 'ver', 've', 'consultar', 'consulta'].includes(w))) {
+                logDebug('🔍 Detectado comando BUSCAR');
+                
+                const productWords = textWords.filter(w => 
+                    !['buscar', 'busca', 'encontrar', 'encuentra', 'ver', 've', 'consultar', 'consulta', 'el', 'la', 'los', 'las'].includes(w)
+                );
+                
+                if (productWords.length > 0) {
+                    const product = productWords.join(' ');
+                    logDebug(`✅ Buscando: "${product}"`);
+                    searchProduct(product);
+                    commandRecognized = true;
+                }
+            }
+            
+            // MOSTRAR INVENTARIO
+            else if (cleanCommand.includes('inventario') || cleanCommand.includes('todo') || cleanCommand.includes('mostrar') || cleanCommand.includes('ver')) {
+                logDebug('🔍 Detectado comando MOSTRAR INVENTARIO');
+                showInventory();
+                commandRecognized = true;
+            }
+
+            // Si nada funcionó, intentar comando directo como "manzanas 5"
+            if (!commandRecognized && numbers.length > 0 && textWords.length > 0) {
+                logDebug('🔄 Intentando interpretación directa producto-cantidad');
+                const quantity = numbers[0];
+                const product = textWords.join(' ');
+                
+                logDebug(`🎯 Interpretación directa: "${product}" = ${quantity}`);
+                addProduct(product, quantity);
+                speak(`Agregado ${quantity} ${product} al inventario`);
+                commandRecognized = true;
+            }
+
+            if (!commandRecognized) {
+                const errorMsg = `❌ No entendí: "${command}"`;
+                updateStatus(errorMsg, 'error');
+                logDebug(errorMsg);
+                speak('No entendí el comando. Di por ejemplo: agregar manzanas 10');
+                
+                setTimeout(() => {
+                    updateStatus('💡 Prueba: "agregar manzanas 10" o "quitar pan 2"');
+                }, 2000);
+            }
+        }
+
+        function addProduct(product, quantity) {
+            if (inventory[product]) {
+                inventory[product] += quantity;
+            } else {
+                inventory[product] = quantity;
+            }
+            saveInventory();
+            updateInventoryDisplay();
+            updateStatus(`✅ Agregado: ${quantity} ${product}`);
+        }
+
+        function removeProduct(product, quantity) {
+            if (inventory[product]) {
+                inventory[product] -= quantity;
+                if (inventory[product] <= 0) {
+                    delete inventory[product];
+                }
+                saveInventory();
+                updateInventoryDisplay();
+                updateStatus(`✅ Quitado: ${quantity} ${product}`);
+            } else {
+                updateStatus(`❌ Producto "${product}" no encontrado`, 'error');
+                speak(`Producto ${product} no encontrado`);
+            }
+        }
+
+        function updateProduct(product, quantity) {
+            inventory[product] = quantity;
+            saveInventory();
+            updateInventoryDisplay();
+            updateStatus(`✅ Actualizado: ${product} = ${quantity}`);
+        }
+
+        function searchProduct(product) {
+            if (inventory[product]) {
+                const quantity = inventory[product];
+                updateStatus(`🔍 Encontrado: ${product} - Cantidad: ${quantity}`);
+                speak(`${product}: ${quantity} unidades disponibles`);
+            } else {
+                updateStatus(`🔍 Producto "${product}" no encontrado`, 'error');
+                speak(`Producto ${product} no encontrado`);
+            }
+        }
+
+        function startListening() {
+            if (!recognition) {
+                updateStatus('❌ Reconocimiento de voz no inicializado', 'error');
+                return;
+            }
+            
+            if (isListening) {
+                updateStatus('⚠️ Ya está escuchando...', 'error');
+                return;
+            }
+
+            // Verificar permisos de micrófono
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(function(stream) {
+                        // Cerrar stream inmediatamente (solo verificamos permiso)
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        // Iniciar reconocimiento
+                        try {
+                            recognition.start();
+                            console.log('🎤 Reconocimiento iniciado');
+                        } catch (error) {
+                            console.error('Error al iniciar reconocimiento:', error);
+                            updateStatus('❌ Error al iniciar reconocimiento de voz', 'error');
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error de permisos:', error);
+                        updateStatus('❌ Permite acceso al micrófono en la configuración del navegador', 'error');
+                        speak('Permite acceso al micrófono para usar comandos de voz');
+                    });
+            } else {
+                // Navegador muy antiguo, intentar directamente
+                try {
+                    recognition.start();
+                } catch (error) {
+                    updateStatus('❌ Tu navegador no soporta reconocimiento de voz', 'error');
+                }
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            recordBtn.classList.remove('recording');
+            updateStatus('Presiona el micrófono para comenzar');
+        }
+
+        recordBtn.addEventListener('click', function() {
+            if (isListening) {
+                recognition.stop();
+            } else {
+                startListening();
+            }
+        });
+
+        // Funciones del inventario
+        function saveInventory() {
+            inventory.lastUpdated = new Date().toISOString();
+            localStorage.setItem('photoInventory', JSON.stringify(inventory));
+        }
+
+        function updateInventoryDisplay() {
+            const productCount = Object.keys(inventory).filter(key => key !== 'lastUpdated').length;
+            totalItems.textContent = `(${productCount} productos)`;
+
+            if (productCount === 0) {
+                inventoryList.innerHTML = '<div class="empty-inventory">Carga fotos o usa comandos de voz para crear tu inventario</div>';
+            } else {
+                let html = '';
+                for (const [product, quantity] of Object.entries(inventory)) {
+                    if (product !== 'lastUpdated') {
+                        html += `
+                            <div class="inventory-item">
+                                <div class="item-name">${product}</div>
+                                <div class="item-quantity">${quantity}</div>
+                            </div>
+                        `;
+                    }
+                }
+                inventoryList.innerHTML = html;
+            }
+
+            // Mostrar última actualización
+            if (inventory.lastUpdated) {
+                const date = new Date(inventory.lastUpdated);
+                lastUpdated.textContent = `Última actualización: ${date.toLocaleDateString('es-ES')} ${date.toLocaleTimeString('es-ES')}`;
+            }
+        }
+
+        function clearInventory() {
+            inventory = {};
+            photos = [];
+            saveInventory();
+            updateInventoryDisplay();
+            updatePhotoPreview();
+            updateStatus('🗑️ Inventario limpiado completamente');
+        }
+
+        function exportToExcel() {
+            if (Object.keys(inventory).filter(key => key !== 'lastUpdated').length === 0) {
+                updateStatus('❌ No hay productos en el inventario para exportar', 'error');
+                return;
+            }
+
+            // Crear datos para Excel
+            const excelData = [];
+            excelData.push(['Producto', 'Cantidad', 'Fecha Actualización']);
+            
+            const updateDate = inventory.lastUpdated ? 
+                new Date(inventory.lastUpdated).toLocaleDateString('es-ES') : 
+                new Date().toLocaleDateString('es-ES');
+
+            for (const [product, quantity] of Object.entries(inventory)) {
+                if (product !== 'lastUpdated') {
+                    excelData.push([product, quantity, updateDate]);
+                }
+            }
+
+            // Crear workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // Ajustar ancho de columnas
+            ws['!cols'] = [
+                { width: 30 },
+                { width: 15 },
+                { width: 20 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+
+            // Descargar archivo
+            const filename = `inventario_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            
+            updateStatus(`✅ Excel exportado: ${filename}`);
+        }
+
+        function updateStatus(message, type = 'normal') {
+            status.textContent = message;
+            status.className = 'status';
+            if (type === 'error') {
+                status.classList.add('error');
+            } else if (type === 'loading') {
+                status.classList.add('loading');
+            }
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'es-ES';
+                utterance.rate = 0.9;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Inicialización
+        window.addEventListener('load', function() {
+            initializeSpeechRecognition();
+            updateInventoryDisplay();
+        });
+    </script>
+</body>
+</html>
